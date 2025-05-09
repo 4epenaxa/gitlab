@@ -1,29 +1,59 @@
-# GitLab + GitLab Runner in Docker
 
-This project runs a local GitLab CE instance with a pre-configured GitLab Runner using the `shell` executor.
+# 🛠️ Self-Hosted GitLab + Runner
 
-## Usage
+Run GitLab CE and GitLab Runner in Docker for local development or CI/CD experiments.
 
-1. Create Docker network:
+---
+## 📁 Project Structure
+
+```text
+.
+├── config/                 # GitLab configuration
+├── logs/                   # GitLab logs
+├── data/                   # GitLab data (repositories, database, etc.)
+├── gitlab-runner/
+│   └── config/             # GitLab Runner configuration
+├── .env                    # Environment variables (e.g., CI_SERVER_URL and token)
+├── docker-compose.yaml     # Main docker-compose file
+└── README.md               # Project documentation
+```
+
+---
+
+## 🛡 Security
+
+> ⚠️ **WARNING:** This configuration uses the `shell` executor for GitLab Runner.
+
+- It is suitable for local development, but **not secure** for production environments.
+- In `shell` mode, the Runner executes commands directly on the host, which can lead to data leakage or malicious code execution.
+- 💡 **It is recommended** to transition to the `docker` executor or isolated `kubernetes`/`virtualbox` executor in the future.
+
+---
+
+## 🚀 Quick Start
 
 ```bash
 docker network create gitnet
+docker-compose up -d
 ```
 
-2. Create .env file with your GitLab URL and runner token:
+Then open your browser and go to:
 
-```
-CI_SERVER_URL=http://your_link/
+- GitLab: [http://localhost:9000](http://localhost:9000)
+
+---
+
+## 🧩 Runner Setup
+
+Runner automatically registers on first start using the variables from `.env`:
+
+```env
+CI_SERVER_URL=http://gitlab/
 CI_REGISTRATION_TOKEN=your_token_here
 ```
 
-3. Start the services:
+---
 
-```
-docker compose up -d
-```
+## 📜 License
 
-4. Access GitLab at http://localhost:9000
-
-#TODO  
-Replace shell executor with docker executor for improved security and isolation.
+MIT — Feel free to use and modify.
