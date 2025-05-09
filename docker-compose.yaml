@@ -1,47 +1,52 @@
 ---
 services:
   gitlab:
-    image: gitlab/gitlab-ce:17.11.0-ce.0 # last version at 25-05-10
+    image: gitlab/gitlab-ce:17.11.2-ce.0 # last version at 2025-05-10
     container_name: gitlab
     hostname: gitlab
     ports:
-      - 9000:80
-      - 52525:22
-    volumes: # mounting local folders as volumes
-      - ./config:/etc/gitlab # gitlab configs
-      - ./logs:/var/log/gitlab
-      - ./data:/var/opt/gitlab
-    shm_size: '256m'
+      - 9000:80      # Web UI
+      - 52525:22     # SSH (for cloning via SSH)
+    volumes:
+      - ./config:/etc/gitlab           # GitLab configuration
+      - ./logs:/var/log/gitlab         # Logs
+      - ./data:/var/opt/gitlab         # GitLab data (repositories, CI pipelines, etc)
+    shm_size: '256m'                   # Shared memory size (GitLab recommends increasing this)
     networks:
       - gitnet
     restart: always
 
   gitlab-runner:
-    image: gitlab/gitlab-runner:v17.9.1 # last version at 25-05-10
+    image: gitlab/gitlab-runner:v17.11.1 # last version at 2025-05-10
     container_name: gitlab-runner
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock # comment
-      - ./gitlab-runner/config:/etc/gitlab-runner # gitlabrunner configs
+      - /var/run/docker.sock:/var/run/docker.sock # Enables docker commands inside runner (if needed)
+      - ./gitlab-runner/config:/etc/gitlab-runner # Stores runner registration/config
     env_file:
       - .env
     entrypoint: ["/bin/bash", "-c", "
         apt-get update && apt-get install -y make curl rsync;
         curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh;
         if [ ! -f /etc/gitlab-runner/config.toml ]; then
-        gitlab-runner register --non-interactive --url \"$CI_SERVER_URL\" --registration-token \"$CI_REGISTRATION_TOKEN\" --executor shell --description \"Shell Runner\";
+          gitlab-runner register \
+            --non-interactive \
+            --url \"$CI_SERVER_URL\" \
+            --registration-token \"$CI_REGISTRATION_TOKEN\" \
+            --executor shell \
+            --description \"Shell Runner\";
         fi;
         exec gitlab-runner run
-        "]
+    "]
     networks:
       - gitnet
     restart: always
 
-# WARNING:
-    # This runner uses the 'shell' executor, which executes CI jobs directly on the container system.
-    # This is NOT secure for shared/multi-user environments and should only be used for local or controlled use.
-    # TODO: Replace with a Docker executor-based setup for improved security and isolation.
+    # WARNING:
+    # This runner uses the 'shell' executor, which executes CI jobs directly inside the container.
+    # This is NOT secure in production or shared environments.
+    # TODO: Migrate to Docker executor with isolated containers for better security.
 
 networks:
   gitnet:
     name: gitnet
-    external: true
+    external: true # You must create this network manually using: docker network create gitnet
