@@ -1,0 +1,47 @@
+---
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:17.11.0-ce.0 # last version at 25-05-10
+    container_name: gitlab
+    hostname: gitlab
+    ports:
+      - 9000:80
+      - 52525:22
+    volumes: # mounting local folders as volumes
+      - ./config:/etc/gitlab # gitlab configs
+      - ./logs:/var/log/gitlab
+      - ./data:/var/opt/gitlab
+    shm_size: '256m'
+    networks:
+      - gitnet
+    restart: always
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:v17.9.1 # last version at 25-05-10
+    container_name: gitlab-runner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # comment
+      - ./gitlab-runner/config:/etc/gitlab-runner # gitlabrunner configs
+    env_file:
+      - .env
+    entrypoint: ["/bin/bash", "-c", "
+        apt-get update && apt-get install -y make curl rsync;
+        curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh;
+        if [ ! -f /etc/gitlab-runner/config.toml ]; then
+        gitlab-runner register --non-interactive --url \"$CI_SERVER_URL\" --registration-token \"$CI_REGISTRATION_TOKEN\" --executor shell --description \"Shell Runner\";
+        fi;
+        exec gitlab-runner run
+        "]
+    networks:
+      - gitnet
+    restart: always
+
+# WARNING:
+    # This runner uses the 'shell' executor, which executes CI jobs directly on the container system.
+    # This is NOT secure for shared/multi-user environments and should only be used for local or controlled use.
+    # TODO: Replace with a Docker executor-based setup for improved security and isolation.
+
+networks:
+  gitnet:
+    name: gitnet
+    external: true
