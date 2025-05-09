@@ -1,0 +1,5 @@
+.env
+config/
+logs/
+data/
+gitlab-runner/config/
